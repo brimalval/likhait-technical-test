@@ -1,3 +1,8 @@
+if Category.exists? || Expense.exists?
+  puts "Seed data already exists; skipping."
+  return
+end
+
 # Clear existing data
 puts "Clearing existing data..."
 Expense.destroy_all

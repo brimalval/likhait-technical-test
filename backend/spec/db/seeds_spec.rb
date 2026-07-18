@@ -15,4 +15,19 @@ RSpec.describe 'db/seeds' do
 
     expect(insert_count).to be > 1
   end
+
+  it 'does not reseed when data already exists' do
+    category = Category.create!(name: 'Existing')
+    expense = Expense.create!(
+      description: 'Existing expense',
+      amount: 12.34,
+      category: category,
+      date: Date.current
+    )
+
+    load Rails.root.join('db/seeds.rb')
+
+    expect(Category.pluck(:name)).to contain_exactly('Existing')
+    expect(Expense.pluck(:id)).to contain_exactly(expense.id)
+  end
 end
