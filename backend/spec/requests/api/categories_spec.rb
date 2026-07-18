@@ -35,6 +35,15 @@ RSpec.describe "Api::Categories", type: :request do
       expect(json["name"]).to eq("Subscriptions")
     end
 
+    it "normalizes surrounding whitespace in the name" do
+      post "/api/categories", params: { category: { name: "  Subscriptions\t" } }, as: :json
+
+      expect(response).to have_http_status(:created)
+      json = JSON.parse(response.body)
+      expect(json["name"]).to eq("Subscriptions")
+      expect(Category.last.name).to eq("Subscriptions")
+    end
+
     it "rejects a blank name" do
       expect {
         post "/api/categories", params: { category: { name: "" } }, as: :json
@@ -50,6 +59,18 @@ RSpec.describe "Api::Categories", type: :request do
 
       expect {
         post "/api/categories", params: { category: { name: "Food" } }, as: :json
+      }.not_to change(Category, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Name has already been taken")
+    end
+
+    it "rejects a duplicate name after normalization" do
+      Category.create!(name: "Food")
+
+      expect {
+        post "/api/categories", params: { category: { name: " Food " } }, as: :json
       }.not_to change(Category, :count)
 
       expect(response).to have_http_status(:unprocessable_entity)
