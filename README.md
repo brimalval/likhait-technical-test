@@ -169,6 +169,14 @@ bundle exec rspec
 bundle exec rubocop
 ```
 
+When running tests inside the backend container, override the service's development environment:
+
+```bash
+docker compose exec -e RAILS_ENV=test backend bundle exec rails db:test:prepare
+docker compose exec -e RAILS_ENV=test backend bundle exec rspec
+docker compose exec backend bundle exec rubocop
+```
+
 ## Database Operations
 
 ### Using Docker
