@@ -21,7 +21,7 @@ export function ExpenseForm({
   onCancel,
   submitLabel = "Add Expense",
 }: ExpenseFormProps) {
-  const { formData, errors, isSubmitting, handleChange, handleSubmit } =
+  const { formData, errors, isSubmitting, maxDate, handleChange, handleSubmit } =
     useExpenseForm({
       initialData,
       onSubmit,
@@ -45,7 +45,7 @@ export function ExpenseForm({
   }));
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
+    <form onSubmit={handleSubmit} style={formStyle} noValidate>
       <TextField
         label="Amount"
         type="number"
@@ -83,6 +83,7 @@ export function ExpenseForm({
         label="Date"
         type="date"
         value={formData.date}
+        max={maxDate}
         onChange={(e) => handleChange("date", e.target.value)}
         error={errors.date}
         fullWidth

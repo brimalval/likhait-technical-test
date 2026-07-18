@@ -12,11 +12,12 @@ interface UseExpenseFormProps {
 }
 
 export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
+  const maxDate = formatDate(new Date());
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: initialData?.amount || "",
     description: initialData?.description || "",
     category: initialData?.category || "",
-    date: initialData?.date || formatDate(new Date()),
+    date: initialData?.date || maxDate,
   });
 
   const [errors, setErrors] = useState<Partial<ExpenseFormData>>({});
@@ -47,6 +48,8 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
 
     if (!formData.date) {
       newErrors.date = "Date is required";
+    } else if (formData.date > maxDate) {
+      newErrors.date = "Date cannot be in the future";
     }
 
     setErrors(newErrors);
@@ -68,7 +71,7 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
         amount: "",
         description: "",
         category: "",
-        date: formatDate(new Date()),
+        date: maxDate,
       });
       setErrors({});
     } catch (error) {
@@ -83,7 +86,7 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
       amount: initialData?.amount || "",
       description: initialData?.description || "",
       category: initialData?.category || "",
-      date: initialData?.date || formatDate(new Date()),
+      date: initialData?.date || maxDate,
     });
     setErrors({});
   };
@@ -92,6 +95,7 @@ export function useExpenseForm({ initialData, onSubmit }: UseExpenseFormProps) {
     formData,
     errors,
     isSubmitting,
+    maxDate,
     handleChange,
     handleSubmit,
     resetForm,
