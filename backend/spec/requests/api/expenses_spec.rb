@@ -63,9 +63,11 @@ RSpec.describe "Api::Expenses", type: :request do
 
         expect {
           post "/api/expenses", params: invalid_params, as: :json
-        }.to change(Expense, :count).by(1)
+        }.not_to change(Expense, :count)
 
-        expect(response).to have_http_status(:created)
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json["errors"]).to include("Amount must be greater than 0")
       end
 
       it "with empty descriptions" do
@@ -80,9 +82,11 @@ RSpec.describe "Api::Expenses", type: :request do
 
         expect {
           post "/api/expenses", params: invalid_params, as: :json
-        }.to change(Expense, :count).by(1)
+        }.not_to change(Expense, :count)
 
-        expect(response).to have_http_status(:created)
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json["errors"]).to include("Description can't be blank")
       end
     end
   end
