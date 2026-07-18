@@ -2,7 +2,7 @@
  * API service for communicating with the backend
  */
 
-import { Expense, ExpenseFormData } from "../types";
+import { Category, Expense, ExpenseFormData } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -36,13 +36,41 @@ export async function getExpenses(
 /**
  * Fetch all categories
  */
-export async function fetchCategories(): Promise<
-  Array<{ id: number; name: string }>
-> {
+export async function fetchCategories(): Promise<Category[]> {
   const response = await fetch(`${API_BASE_URL}/categories`);
   if (!response.ok) {
     throw new Error("Failed to fetch categories");
   }
+  return response.json();
+}
+
+/**
+ * Create a new category
+ */
+export async function createCategory(name: string): Promise<Category> {
+  const response = await fetch(`${API_BASE_URL}/categories`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ category: { name } }),
+  });
+
+  if (!response.ok) {
+    let message = "Failed to create category";
+
+    try {
+      const body = await response.json();
+      if (Array.isArray(body.errors) && body.errors.length > 0) {
+        message = body.errors.join(", ");
+      }
+    } catch {
+      // Keep the generic message when the response body is not JSON.
+    }
+
+    throw new Error(message);
+  }
+
   return response.json();
 }
 
@@ -83,12 +111,20 @@ export async function updateExpense(
   id: number,
   data: Partial<ExpenseFormData>,
 ): Promise<Expense> {
+  const { category, ...expenseData } = data;
+
+  if (category) {
+    const categories = await fetchCategories();
+    const selectedCategory = categories.find((c) => c.name === category);
+    Object.assign(expenseData, { category_id: selectedCategory?.id });
+  }
+
   const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ expense: data }),
+    body: JSON.stringify({ expense: expenseData }),
   });
 
   if (!response.ok) {

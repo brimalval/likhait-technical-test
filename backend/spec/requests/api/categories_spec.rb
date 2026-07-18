@@ -22,4 +22,60 @@ RSpec.describe "Api::Categories", type: :request do
       expect(json.map { |c| c["name"] }).to eq([ "Food", "Supplies", "Transport" ])
     end
   end
+
+  describe "POST /api/categories" do
+    it "creates a category" do
+      expect {
+        post "/api/categories", params: { category: { name: "Subscriptions" } }, as: :json
+      }.to change(Category, :count).by(1)
+
+      expect(response).to have_http_status(:created)
+      json = JSON.parse(response.body)
+      expect(json["id"]).to be_present
+      expect(json["name"]).to eq("Subscriptions")
+    end
+
+    it "normalizes surrounding whitespace in the name" do
+      post "/api/categories", params: { category: { name: "  Subscriptions\t" } }, as: :json
+
+      expect(response).to have_http_status(:created)
+      json = JSON.parse(response.body)
+      expect(json["name"]).to eq("Subscriptions")
+      expect(Category.last.name).to eq("Subscriptions")
+    end
+
+    it "rejects a blank name" do
+      expect {
+        post "/api/categories", params: { category: { name: "" } }, as: :json
+      }.not_to change(Category, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Name can't be blank")
+    end
+
+    it "rejects a duplicate name" do
+      Category.create!(name: "Food")
+
+      expect {
+        post "/api/categories", params: { category: { name: "Food" } }, as: :json
+      }.not_to change(Category, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Name has already been taken")
+    end
+
+    it "rejects a duplicate name after normalization" do
+      Category.create!(name: "Food")
+
+      expect {
+        post "/api/categories", params: { category: { name: " Food " } }, as: :json
+      }.not_to change(Category, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Name has already been taken")
+    end
+  end
 end
