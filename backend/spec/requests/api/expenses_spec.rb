@@ -46,8 +46,27 @@ RSpec.describe "Api::Expenses", type: :request do
         expect(response).to have_http_status(:created)
         json = JSON.parse(response.body)
         expect(json["description"]).to eq("Team Lunch")
-        expect(json["amount"]).to eq("150.5")
+        expect(json["amount"]).to eq(150.5)
       end
+    end
+
+    it "rejects future expense dates" do
+      future_params = {
+        expense: {
+          description: "Future lunch",
+          amount: 150.50,
+          category_id: food_category.id,
+          date: Date.current + 1.day
+        }
+      }
+
+      expect {
+        post "/api/expenses", params: future_params, as: :json
+      }.not_to change(Expense, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Date cannot be in the future")
     end
 
     context "with invalid parameters" do
@@ -84,6 +103,32 @@ RSpec.describe "Api::Expenses", type: :request do
 
         expect(response).to have_http_status(:created)
       end
+    end
+  end
+
+  describe "PUT /api/expenses/:id" do
+    let!(:expense) do
+      Expense.create!(
+        description: "Groceries",
+        amount: 75.25,
+        category: food_category,
+        date: Date.current
+      )
+    end
+
+    it "rejects updates to future expense dates" do
+      put "/api/expenses/#{expense.id}",
+          params: {
+            expense: {
+              date: Date.current + 1.day
+            }
+          },
+          as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to include("Date cannot be in the future")
+      expect(expense.reload.date).to eq(Date.current)
     end
   end
 end
