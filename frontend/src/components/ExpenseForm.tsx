@@ -191,7 +191,7 @@ export function ExpenseForm({
         }}
         title="Add Category"
       >
-        <form onSubmit={handleCreateCategory} style={modalFormStyle}>
+        <form onSubmit={handleCreateCategory} style={modalFormStyle} noValidate>
           <TextField
             label="Category Name"
             type="text"
