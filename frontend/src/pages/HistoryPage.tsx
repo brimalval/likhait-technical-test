@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { getExpenses, createExpense } from "../services/api";
-import { Expense, ExpenseFormData } from "../types";
+import {
+  getExpenses,
+  createExpense,
+  fetchCategories,
+  createCategory,
+} from "../services/api";
+import { Category, Expense, ExpenseFormData } from "../types";
 import YearNavigation from "../components/YearNavigation";
 import { MonthNavigation } from "../components/MonthNavigation";
 import CategoryBreakdown from "../components/CategoryBreakdown";
@@ -13,6 +18,8 @@ const HistoryPage: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Get year and month from URL params, default to current date if not provided
   const getInitialYearMonth = () => {
@@ -46,6 +53,10 @@ const HistoryPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
     fetchExpenses();
   }, [selectedYear, selectedMonth]);
 
@@ -58,6 +69,18 @@ const HistoryPage: React.FC = () => {
       console.error("Error fetching expenses:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const data = await fetchCategories();
+      setCategoryOptions(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
@@ -82,6 +105,17 @@ const HistoryPage: React.FC = () => {
     }
   };
 
+  const handleCreateCategory = async (name: string) => {
+    const category = await createCategory(name);
+    setCategoryOptions((previousCategories) =>
+      [
+        ...previousCategories.filter((item) => item.id !== category.id),
+        category,
+      ].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    return category;
+  };
+
   // Calculate category breakdown
   const categoryData = expenses.reduce(
     (acc, expense) => {
@@ -96,11 +130,14 @@ const HistoryPage: React.FC = () => {
     {} as Record<string, { category: string; amount: number; count: number }>,
   );
 
-  const categories = Object.values(categoryData).sort(
+  const categoryBreakdownItems = Object.values(categoryData).sort(
     (a, b) => b.amount - a.amount,
   );
-  const total = categories.reduce((sum, cat) => sum + cat.amount, 0);
-  const totalCount = categories.reduce((sum, cat) => sum + cat.count, 0);
+  const total = categoryBreakdownItems.reduce((sum, cat) => sum + cat.amount, 0);
+  const totalCount = categoryBreakdownItems.reduce(
+    (sum, cat) => sum + cat.count,
+    0,
+  );
 
   const pageStyle: React.CSSProperties = {
     padding: "48px 64px",
@@ -165,13 +202,16 @@ const HistoryPage: React.FC = () => {
         ) : (
           <>
             <CategoryBreakdown
-              categories={categories}
+              categories={categoryBreakdownItems}
               total={total}
               totalCount={totalCount}
             />
             <div style={{ marginTop: "32px" }}>
               <CalendarExpenseTable
                 expenses={expenses}
+                categories={categoryOptions}
+                categoriesLoading={categoriesLoading}
+                onCategoryCreate={handleCreateCategory}
                 onExpenseUpdated={fetchExpenses}
               />
             </div>
@@ -185,6 +225,9 @@ const HistoryPage: React.FC = () => {
         title="Add New Expense"
       >
         <ExpenseForm
+          categories={categoryOptions}
+          categoriesLoading={categoriesLoading}
+          onCategoryCreate={handleCreateCategory}
           onSubmit={handleAddExpense}
           onCancel={() => setIsModalOpen(false)}
         />
