@@ -1,3 +1,8 @@
+if Category.exists? || Expense.exists?
+  puts "Seed data already exists; skipping."
+  return
+end
+
 # Clear existing data
 puts "Clearing existing data..."
 Expense.destroy_all
@@ -117,6 +122,7 @@ start_date = Date.new(2024, 1, 1)
 end_date = Date.new(2026, 2, 18)
 
 expense_count = 0
+expense_rows = []
 current_date = start_date
 
 while current_date <= end_date
@@ -141,14 +147,14 @@ while current_date <= end_date
       amount += rand(0..99) / 100.0
 
       # Create the expense with created_at set to the date
-      Expense.create!(
+      expense_rows << {
         description: template[:description],
         amount: amount,
-        category: category,
+        category_id: category.id,
         date: current_date,
         created_at: current_date,
         updated_at: current_date
-      )
+      }
 
       expense_count += 1
 
@@ -161,6 +167,10 @@ while current_date <= end_date
 
   # Move to next day
   current_date += 1.day
+end
+
+expense_rows.each_slice(500) do |rows|
+  Expense.insert_all!(rows)
 end
 
 puts "Seed data created successfully!"
